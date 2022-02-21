@@ -1,5 +1,5 @@
 import React from 'react';
-import {Alert, Button, ToastAndroid} from 'react-native';
+import {Alert, Button} from 'react-native';
 import MyGPSModule from './MyGPSModule/MyGPSModule.js';
 
 const ModuleButton = () => {

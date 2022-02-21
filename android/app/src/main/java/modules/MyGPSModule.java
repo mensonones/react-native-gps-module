@@ -1,6 +1,7 @@
 package modules;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -19,7 +20,6 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.PermissionChecker;
 
 import com.facebook.react.bridge.Arguments;
-import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -27,9 +27,9 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.PermissionListener;
 
-import java.util.HashMap;
+import java.util.function.Consumer;
 
-public class MyGPSModule  extends ReactContextBaseJavaModule implements PermissionListener, LocationListener {
+public class MyGPSModule extends ReactContextBaseJavaModule implements PermissionListener, LocationListener {
 
     private final ReactApplicationContext reactContext;
 
@@ -60,7 +60,6 @@ public class MyGPSModule  extends ReactContextBaseJavaModule implements Permissi
     // Declaring a Location Manager
     protected LocationManager locationManager;
 
-
     public MyGPSModule(ReactApplicationContext context) {
         super(context);
         this.reactContext = context;
@@ -72,84 +71,13 @@ public class MyGPSModule  extends ReactContextBaseJavaModule implements Permissi
         return "MyGPSModule";
     }
 
-    public Location getLocation() {
-        try {
-            locationManager = (LocationManager) reactContext.getSystemService(Context.LOCATION_SERVICE);
-
-            // getting GPS status
-            isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-
-            // getting network status
-            isNetworkEnabled = locationManager
-                    .isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-
-            if (!isGPSEnabled && !isNetworkEnabled) {
-                // no network provider is enabled
-            } else {
-                this.canGetLocation = true;
-                // First get location from Network Provider
-                if (isNetworkEnabled) {
-                    //check the network permission
-                    if (ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                        ActivityCompat.requestPermissions((Activity) getCurrentActivity(), new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_CODE_PERMISSIONS);
-                    }
-                    locationManager.requestLocationUpdates(
-                            LocationManager.NETWORK_PROVIDER,
-                            MIN_TIME_BW_UPDATES,
-                            MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
-
-                    Log.d("Network", "Network");
-                    if (locationManager != null) {
-                        location = locationManager
-                                .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-
-                        if (location != null) {
-                            latitude = location.getLatitude();
-                            longitude = location.getLongitude();
-                        }
-                    }
-                }
-
-                // if GPS Enabled get lat/long using GPS Services
-                if (isGPSEnabled) {
-                    if (location == null) {
-                        //check the network permission
-                        if (ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                            ActivityCompat.requestPermissions((Activity) getCurrentActivity(), new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_CODE_PERMISSIONS);
-                        }
-                        locationManager.requestLocationUpdates(
-                                LocationManager.GPS_PROVIDER,
-                                MIN_TIME_BW_UPDATES,
-                                MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
-
-                        Log.d("GPS Enabled", "GPS Enabled");
-                        if (locationManager != null) {
-                            location = locationManager
-                                    .getLastKnownLocation(LocationManager.GPS_PROVIDER);
-
-                            if (location != null) {
-                                latitude = location.getLatitude();
-                                longitude = location.getLongitude();
-                            }
-                        }
-                    }
-                }
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return location;
-    }
-
     /**
      * Stop using GPS listener
      * Calling this function will stop using GPS in your app
      * */
 
-    public void stopUsingGPS(){
-        if(locationManager != null){
+    public void stopUsingGPS() {
+        if (locationManager != null) {
             locationManager.removeUpdates(MyGPSModule.this);
         }
     }
@@ -158,8 +86,8 @@ public class MyGPSModule  extends ReactContextBaseJavaModule implements Permissi
      * Function to get latitude
      * */
 
-    public double getLatitude(){
-        if(location != null){
+    public double getLatitude() {
+        if (location != null) {
             latitude = location.getLatitude();
         }
 
@@ -171,8 +99,8 @@ public class MyGPSModule  extends ReactContextBaseJavaModule implements Permissi
      * Function to get longitude
      * */
 
-    public double getLongitude(){
-        if(location != null){
+    public double getLongitude() {
+        if (location != null) {
             longitude = location.getLongitude();
         }
 
@@ -180,16 +108,7 @@ public class MyGPSModule  extends ReactContextBaseJavaModule implements Permissi
         return longitude;
     }
 
-    /**
-     * Function to check GPS/wifi enabled
-     * @return boolean
-     * */
-
-    public boolean canGetLocation() {
-        return this.canGetLocation;
-    }
-
-    public void showSettingsAlert(){
+    public void showSettingsAlert() {
         final Activity activity = getCurrentActivity();
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(activity);
 
@@ -216,8 +135,10 @@ public class MyGPSModule  extends ReactContextBaseJavaModule implements Permissi
         alertDialog.show();
     }
 
+    @SuppressLint("NewApi")
     @ReactMethod
     public void getCoordinatesByGPS(final Promise promise) {
+        Log.d("getCoordinatesByGPS", "CALLED getCoordinatesByGPS");
         Context context = getReactApplicationContext();
         final Activity activity = getCurrentActivity();
 
@@ -227,26 +148,118 @@ public class MyGPSModule  extends ReactContextBaseJavaModule implements Permissi
         }
 
         int hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION);
-        if(hasPermission == PackageManager.PERMISSION_GRANTED) {
-            this.getLocation();
-            double lat = (double) (location.getLatitude());
-            double lng = (double) (location.getLongitude());
 
-            WritableMap map = Arguments.createMap();
-            map.putDouble("latitude", lat);
-            map.putDouble("longitude", lng);
+        locationManager = (LocationManager) reactContext.getSystemService(Context.LOCATION_SERVICE);
 
-            promise.resolve(map);
+        // getting GPS status
+        isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+
+        // getting network status
+        isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+
+        if (hasPermission == PackageManager.PERMISSION_GRANTED) {
+            Log.d("getCoordinatesByGPS", "hasPermission == PackageManager.PERMISSION_GRANTED");
+            if (!isGPSEnabled && !isNetworkEnabled) {
+                Log.d("getCoordinatesByGPS", "!isGPSEnabled && !isNetworkEnabled");
+                this.showSettingsAlert();
+            }
+            if (isGPSEnabled && isNetworkEnabled) {
+                Log.d("getCoordinatesByGPS", "isGPSEnabled: " + isGPSEnabled);
+
+                if (isNetworkEnabled) {
+                    //check the network permission
+                    if (ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions((Activity) getCurrentActivity(), new String[] {
+                                android.Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION
+                        }, REQUEST_CODE_PERMISSIONS);
+                    }
+                    locationManager.requestLocationUpdates(
+                            LocationManager.NETWORK_PROVIDER,
+                            MIN_TIME_BW_UPDATES,
+                            MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
+
+                    Log.d("Network", "Network");
+                    if (locationManager != null) {
+                        location = locationManager
+                                .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+
+                        if (location != null) {
+                            latitude = location.getLatitude();
+                            longitude = location.getLongitude();
+
+                            double lat = (double)(latitude);
+                            double lng = (double)(longitude);
+
+                            WritableMap map = Arguments.createMap();
+                            map.putDouble("latitude", lat);
+                            map.putDouble("longitude", lng);
+
+                            promise.resolve(map);
+                        }
+                    }
+                }
+
+                // if GPS Enabled get lat/long using GPS Services
+                if (isGPSEnabled) {
+                    if (location == null) {
+                        //check the network permission
+                        if (ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(reactContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                            ActivityCompat.requestPermissions((Activity) getCurrentActivity(), new String[] {
+                                    android.Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION
+                            }, REQUEST_CODE_PERMISSIONS);
+                        }
+                        locationManager.requestLocationUpdates(
+                                LocationManager.GPS_PROVIDER,
+                                MIN_TIME_BW_UPDATES,
+                                MIN_DISTANCE_CHANGE_FOR_UPDATES, this);
+
+                        Log.d("GPS Enabled", "GPS Enabled");
+            /* if (locationManager != null) {
+                location = locationManager
+                        .getLastKnownLocation(LocationManager.GPS_PROVIDER); */
+
+                        locationManager.getCurrentLocation(
+                                LocationManager.GPS_PROVIDER,
+                                null,
+                                reactContext.getMainExecutor(),
+                                new Consumer < Location > () {
+                                    @Override
+                                    public void accept(Location location) {
+                                        Log.d("GPS ENABLED", "isGpsEnabled");
+                                        // code
+                                        location = location;
+
+                                        if (location != null) {
+                                            latitude = location.getLatitude();
+                                            longitude = location.getLongitude();
+
+                                            double lat = (double)(latitude);
+                                            double lng = (double)(longitude);
+
+                                            WritableMap map = Arguments.createMap();
+                                            map.putDouble("latitude", lat);
+                                            map.putDouble("longitude", lng);
+
+                                            promise.resolve(map);
+                                        }
+                                    }
+                                });
+                    }
+                }
+            }
         } else {
+            Log.d("getCoordinatesByGPS", "ELSE hasPermission == PackageManager.PERMISSION_GRANTED");
             promise.reject(PERMISSION_DENIED, "Permission was not granted");
             ActivityCompat.requestPermissions(activity,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_CODE_PERMISSIONS);
+                    new String[] {
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                    }, REQUEST_CODE_PERMISSIONS);
         }
     }
 
     @Override
     public boolean onRequestPermissionsResult(int requestCode, String[] permissions,
-                                              int[] grantResults){
+                                              int[] grantResults) {
         Log.d("MyModuleGPS", "onRequestPermissionsResult");
         onRequestPermissionsResult(requestCode, permissions, grantResults);
         final Activity activity = getCurrentActivity();
@@ -267,8 +280,8 @@ public class MyGPSModule  extends ReactContextBaseJavaModule implements Permissi
 
     @Override
     public void onLocationChanged(@NonNull Location location) {
-        double lat = (double) (location.getLatitude());
-        double lng = (double) (location.getLongitude());
+        double lat = (double)(location.getLatitude());
+        double lng = (double)(location.getLongitude());
         Log.d("ONLOCATION LAT", String.valueOf(lat));
         Log.d("ONLOCATION LNG", String.valueOf(lng));
     }
