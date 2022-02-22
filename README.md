@@ -28,10 +28,8 @@ MyGPSModule.getCoordinatesByGPS()
 {"latitude": -3.7535016666666667, "longitude": -38.521946666666665}
 ```
 
-```
 ### Suporte
 
 - [x] Android
-- [pendente] iOS
-- [pedente] Web
-```
+- [ ] iOS
+- [ ] Web
